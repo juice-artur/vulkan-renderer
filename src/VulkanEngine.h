@@ -6,10 +6,11 @@
 class VulkanEngine {
 
 public:
-    VkResult init_Vulkan();
+    void init_Vulkan();
 private:
     VkInstance _instance;
     std::vector<VkPhysicalDevice> _physicalDevices;
+    VkPhysicalDeviceProperties _physicalDeviceProperties;
 };
 
 

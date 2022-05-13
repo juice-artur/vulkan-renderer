@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.7.1)
 
 set(PROJECT_NAME "vulkan-step-by-step")
-
 # AUTO_LOCATE_VULKAN - accepted value ON or OFF
 # ON  - Use CMake to auto locate the Vulkan SDK.
 # OFF - Vulkan SDK path can be specified manually. This is helpful to test the build on various Vulkan version.
@@ -73,7 +72,7 @@ if(WIN32)
     source_group("include" REGULAR_EXPRESSION "include/*")
     source_group("source" REGULAR_EXPRESSION "source/*")
 endif(WIN32)
-
+add_subdirectory(external)
 # Define include path
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -85,7 +84,7 @@ file(GLOB_RECURSE HPP_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.*)
 add_executable(${PROJECT_NAME} ${CPP_FILES} ${HPP_FILES})
 
 # Link the debug and release libraries to the project
-target_link_libraries( ${PROJECT_NAME} ${VULKAN_LIB_LIST} )
+target_link_libraries( ${PROJECT_NAME} ${VULKAN_LIB_LIST} vkbootstrap )
 
 # Define project properties
 set_property(TARGET ${PROJECT_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/binaries)
