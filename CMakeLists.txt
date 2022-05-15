@@ -73,6 +73,7 @@ if(WIN32)
     source_group("source" REGULAR_EXPRESSION "source/*")
 endif(WIN32)
 add_subdirectory(external)
+add_subdirectory(external/glfw ${CMAKE_CURRENT_BINARY_DIR}/glfw)
 # Define include path
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -84,7 +85,7 @@ file(GLOB_RECURSE HPP_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.*)
 add_executable(${PROJECT_NAME} ${CPP_FILES} ${HPP_FILES})
 
 # Link the debug and release libraries to the project
-target_link_libraries( ${PROJECT_NAME} ${VULKAN_LIB_LIST} vkbootstrap )
+target_link_libraries( ${PROJECT_NAME} ${VULKAN_LIB_LIST} vkbootstrap glfw)
 
 # Define project properties
 set_property(TARGET ${PROJECT_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/binaries)
