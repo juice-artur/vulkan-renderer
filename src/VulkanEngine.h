@@ -2,15 +2,19 @@
 #define VULKAN_STEP_BY_STEP_VULKANENGINE_H
 #include <vulkan/vulkan.h>
 #include "vector"
+#include "GLFW/glfw3.h"
 
 class VulkanEngine {
-
 public:
-    void init_Vulkan();
+    //TODO: add cleanup
+    void initVulkan();
 private:
+    GLFWwindow* _window;
     VkInstance _instance;
-    std::vector<VkPhysicalDevice> _physicalDevices;
-    VkPhysicalDeviceProperties _physicalDeviceProperties;
+    VkPhysicalDevice _physicalDevices;
+    VkSurfaceKHR _surface;
+
+    void initWindow();
 };
 
 

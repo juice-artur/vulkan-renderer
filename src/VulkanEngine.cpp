@@ -2,7 +2,7 @@
 #include "VulkanEngine.h"
 #include <vulkan/vulkan.h>
 #include "VkBootstrap.h"
-void VulkanEngine::init_Vulkan() {
+void VulkanEngine::initVulkan() {
     vkb::InstanceBuilder instance_builder;
     auto instance_builder_return = instance_builder
             .set_app_name("vulkan-step-by-step")
@@ -16,4 +16,25 @@ void VulkanEngine::init_Vulkan() {
     }
     vkb::Instance vkb_instance = instance_builder_return.value();
     _instance = vkb_instance.instance;
+    VkResult error = glfwCreateWindowSurface (_instance, _window, NULL, &_surface);
+    if (error != VK_SUCCESS) {
+        std::cerr << "Failed to create glfw window surface " << "\n";
+        return;
+    }
+
+    vkb::PhysicalDeviceSelector phys_device_selector (vkb_instance);
+    auto physical_device_selector_return = phys_device_selector
+            .set_surface(_surface)
+            .select ();
+    if (!physical_device_selector_return) {
+        std::cerr << "Failed to set physical devices " << "\n";
+    }
+    _physicalDevices = physical_device_selector_return.value();
+}
+
+void VulkanEngine::initWindow() {
+    glfwInit();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    _window = glfwCreateWindow(800, 600, "Vulkan", nullptr, nullptr);
 }

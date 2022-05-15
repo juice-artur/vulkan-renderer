@@ -3,6 +3,7 @@
 int main(){
     std::cout <<"Hi";
     VulkanEngine vulkanEngine;
-    vulkanEngine.init_Vulkan();
+    vulkanEngine.initVulkan();
+    glfwTerminate();
     return 0;
 };
