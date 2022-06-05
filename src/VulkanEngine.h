@@ -7,7 +7,7 @@
 class VulkanEngine {
 public:
     //TODO: add cleanup
-    void initVulkan();
+    void init();
 private:
     GLFWwindow* _window;
     VkInstance _instance;
@@ -15,6 +15,7 @@ private:
     VkSurfaceKHR _surface;
 
     void initWindow();
+    void initVulkan();
 };
 
 

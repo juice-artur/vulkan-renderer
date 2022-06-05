@@ -2,6 +2,7 @@
 #include "VulkanEngine.h"
 #include <vulkan/vulkan.h>
 #include "VkBootstrap.h"
+
 void VulkanEngine::initVulkan() {
     vkb::InstanceBuilder instance_builder;
     auto instance_builder_return = instance_builder
@@ -18,7 +19,7 @@ void VulkanEngine::initVulkan() {
     _instance = vkb_instance.instance;
     VkResult error = glfwCreateWindowSurface (_instance, _window, NULL, &_surface);
     if (error != VK_SUCCESS) {
-        std::cerr << "Failed to create glfw window surface " << "\n";
+        std::cerr << "Failed to create glfw window surface. Error code: " << '\n' << error << '\n';
         return;
     }
 
@@ -37,4 +38,9 @@ void VulkanEngine::initWindow() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     _window = glfwCreateWindow(800, 600, "Vulkan", nullptr, nullptr);
+}
+
+void VulkanEngine::init() {
+    initWindow();
+    initVulkan();
 }
