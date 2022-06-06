@@ -6,6 +6,7 @@
 void VulkanEngine::init() {
     initWindow();
     initVulkan();
+    initSwapchain();
 }
 
 void VulkanEngine::initVulkan() {
@@ -50,10 +51,34 @@ void VulkanEngine::initWindow() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    _window = glfwCreateWindow(800, 600, "Vulkan", nullptr, nullptr);
+    _window = glfwCreateWindow(_windowExtent.width, _windowExtent.height, "Vulkan", nullptr, nullptr);
+}
+
+void VulkanEngine::initSwapchain() {
+    vkb::SwapchainBuilder swapchainBuilder{_chosenGPU,_device,_surface };
+
+    vkb::Swapchain vkbSwapchain = swapchainBuilder
+            .use_default_format_selection()
+            .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
+            .set_desired_extent(_windowExtent.width, _windowExtent.height)
+            .build()
+            .value();
+
+    _swapchain = vkbSwapchain.swapchain;
+    _swapchainImages = vkbSwapchain.get_images().value();
+    _swapchainImageViews = vkbSwapchain.get_image_views().value();
+
+    _swapchainImageFormat = vkbSwapchain.image_format;
 }
 
 void VulkanEngine::cleanup() {
+    vkDestroySwapchainKHR(_device, _swapchain, nullptr);
+
+    for (int i = 0; i < _swapchainImageViews.size(); i++) {
+
+        vkDestroyImageView(_device, _swapchainImageViews[i], nullptr);
+    }
+
     vkDestroyDevice(_device, nullptr);
     vkDestroySurfaceKHR(_instance, _surface, nullptr);
     vkb::destroy_debug_utils_messenger(_instance, _debug_messenger);

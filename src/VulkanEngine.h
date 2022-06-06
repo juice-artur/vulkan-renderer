@@ -11,6 +11,8 @@ public:
     void init();
     void cleanup();
 private:
+    VkExtent2D _windowExtent{ 800 , 600 };
+
     GLFWwindow* _window;
     VkInstance _instance;
     VkDebugUtilsMessengerEXT _debug_messenger;
@@ -18,9 +20,15 @@ private:
     VkDevice _device;
     VkSurfaceKHR _surface;
 
+    VkSwapchainKHR _swapchain;
+    VkFormat _swapchainImageFormat;
+    std::vector<VkImage> _swapchainImages;
+    std::vector<VkImageView> _swapchainImageViews;
+
     void initWindow();
     void initVulkan();
+    void initSwapchain();
 };
 
 
-#endif //VULKAN_STEP_BY_STEP_VULKANENGINE_H
+#endif
