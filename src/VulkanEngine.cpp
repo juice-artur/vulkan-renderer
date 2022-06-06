@@ -3,11 +3,16 @@
 #include <vulkan/vulkan.h>
 #include "VkBootstrap.h"
 
+void VulkanEngine::init() {
+    initWindow();
+    initVulkan();
+}
+
 void VulkanEngine::initVulkan() {
     vkb::InstanceBuilder instance_builder;
     auto instance_builder_return = instance_builder
             .set_app_name("vulkan-step-by-step")
-            .request_validation_layers()
+            .request_validation_layers(true)
             .use_default_debug_messenger()
             .build ();;
 
@@ -15,22 +20,30 @@ void VulkanEngine::initVulkan() {
         std::cerr << "Failed to create Vulkan instance. Error: " << instance_builder_return.error().message() << "\n";
         return;
     }
+
     vkb::Instance vkb_instance = instance_builder_return.value();
     _instance = vkb_instance.instance;
+    _debug_messenger = vkb_instance.debug_messenger;
+
     VkResult error = glfwCreateWindowSurface (_instance, _window, NULL, &_surface);
     if (error != VK_SUCCESS) {
         std::cerr << "Failed to create glfw window surface. Error code: " << '\n' << error << '\n';
         return;
     }
 
-    vkb::PhysicalDeviceSelector phys_device_selector (vkb_instance);
-    auto physical_device_selector_return = phys_device_selector
+    vkb::PhysicalDeviceSelector selector{ vkb_instance };
+    vkb::PhysicalDevice physicalDevice = selector
+            .set_minimum_version(1, 1)
             .set_surface(_surface)
-            .select ();
-    if (!physical_device_selector_return) {
-        std::cerr << "Failed to set physical devices " << "\n";
-    }
-    _physicalDevices = physical_device_selector_return.value();
+            .select()
+            .value();
+
+    vkb::DeviceBuilder deviceBuilder{ physicalDevice };
+
+    vkb::Device vkbDevice = deviceBuilder.build().value();
+
+    _device = vkbDevice.device;
+    _chosenGPU = physicalDevice.physical_device;
 }
 
 void VulkanEngine::initWindow() {
@@ -40,7 +53,10 @@ void VulkanEngine::initWindow() {
     _window = glfwCreateWindow(800, 600, "Vulkan", nullptr, nullptr);
 }
 
-void VulkanEngine::init() {
-    initWindow();
-    initVulkan();
+void VulkanEngine::cleanup() {
+    vkDestroyDevice(_device, nullptr);
+    vkDestroySurfaceKHR(_instance, _surface, nullptr);
+    vkb::destroy_debug_utils_messenger(_instance, _debug_messenger);
+    vkDestroyInstance(_instance, nullptr);
+    glfwTerminate();
 }

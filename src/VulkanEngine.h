@@ -3,15 +3,19 @@
 #include <vulkan/vulkan.h>
 #include "vector"
 #include "GLFW/glfw3.h"
+#include "VkBootstrap.h"
 
 class VulkanEngine {
 public:
-    //TODO: add cleanup
+
     void init();
+    void cleanup();
 private:
     GLFWwindow* _window;
     VkInstance _instance;
-    VkPhysicalDevice _physicalDevices;
+    VkDebugUtilsMessengerEXT _debug_messenger;
+    VkPhysicalDevice _chosenGPU;
+    VkDevice _device;
     VkSurfaceKHR _surface;
 
     void initWindow();

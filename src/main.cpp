@@ -2,6 +2,6 @@
 int main(){
     VulkanEngine vulkanEngine{};
     vulkanEngine.init();
-    glfwTerminate();
+    vulkanEngine.cleanup();
     return 0;
 };
