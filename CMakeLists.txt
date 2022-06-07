@@ -82,7 +82,7 @@ file(GLOB_RECURSE CPP_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 file(GLOB_RECURSE HPP_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.*)
 
 # Build project, give it a name and includes list of file to be compiled
-add_executable(${PROJECT_NAME} ${CPP_FILES} ${HPP_FILES})
+add_executable(${PROJECT_NAME} ${CPP_FILES} ${HPP_FILES} src/vk_initializers.cpp src/vk_initializers.h)
 
 # Link the debug and release libraries to the project
 target_link_libraries( ${PROJECT_NAME} ${VULKAN_LIB_LIST} vkbootstrap glfw)

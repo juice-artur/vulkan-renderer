@@ -1,12 +1,14 @@
 #include <iostream>
 #include "VulkanEngine.h"
-#include <vulkan/vulkan.h>
 #include "VkBootstrap.h"
+#include "vk_initializers.h"
 
+//TODO: Add error information output
 void VulkanEngine::init() {
     initWindow();
     initVulkan();
     initSwapchain();
+    initCommands();
 }
 
 void VulkanEngine::initVulkan() {
@@ -45,6 +47,9 @@ void VulkanEngine::initVulkan() {
 
     _device = vkbDevice.device;
     _chosenGPU = physicalDevice.physical_device;
+
+    _graphicsQueue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
+    _graphicsQueueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 }
 
 void VulkanEngine::initWindow() {
@@ -67,11 +72,19 @@ void VulkanEngine::initSwapchain() {
     _swapchain = vkbSwapchain.swapchain;
     _swapchainImages = vkbSwapchain.get_images().value();
     _swapchainImageViews = vkbSwapchain.get_image_views().value();
-
     _swapchainImageFormat = vkbSwapchain.image_format;
 }
 
+void VulkanEngine::initCommands() {
+    VkCommandPoolCreateInfo commandPoolInfo = vkinit::command_pool_create_info(_graphicsQueueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+    vkCreateCommandPool(_device, &commandPoolInfo, nullptr, &_commandPool);
+    VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::command_buffer_allocate_info(_commandPool, 1);
+    vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_mainCommandBuffer);
+}
+
 void VulkanEngine::cleanup() {
+    vkDestroyCommandPool(_device, _commandPool, nullptr);
+
     vkDestroySwapchainKHR(_device, _swapchain, nullptr);
 
     for (int i = 0; i < _swapchainImageViews.size(); i++) {
