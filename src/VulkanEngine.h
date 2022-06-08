@@ -15,7 +15,7 @@ private:
 
     GLFWwindow* _window;
     VkInstance _instance;
-    VkDebugUtilsMessengerEXT _debug_messenger;
+    VkDebugUtilsMessengerEXT _debugMessenger;
     VkPhysicalDevice _chosenGPU;
     VkDevice _device;
     VkSurfaceKHR _surface;
@@ -30,10 +30,15 @@ private:
     VkCommandPool _commandPool;
     VkCommandBuffer _mainCommandBuffer;
 
+    VkRenderPass _renderPass;
+    std::vector<VkFramebuffer> _frameBuffers;
+
     void initWindow();
     void initVulkan();
     void initSwapchain();
     void initCommands();
+    void initDefaultRenderPass();
+    void initFrameBuffers();
 };
 
 

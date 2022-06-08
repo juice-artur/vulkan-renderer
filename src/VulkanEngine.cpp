@@ -9,6 +9,8 @@ void VulkanEngine::init() {
     initVulkan();
     initSwapchain();
     initCommands();
+    initDefaultRenderPass();
+    initFrameBuffers();
 }
 
 void VulkanEngine::initVulkan() {
@@ -17,7 +19,7 @@ void VulkanEngine::initVulkan() {
             .set_app_name("vulkan-step-by-step")
             .request_validation_layers(true)
             .use_default_debug_messenger()
-            .build ();;
+            .build ();
 
     if (!instance_builder_return) {
         std::cerr << "Failed to create Vulkan instance. Error: " << instance_builder_return.error().message() << "\n";
@@ -26,9 +28,9 @@ void VulkanEngine::initVulkan() {
 
     vkb::Instance vkb_instance = instance_builder_return.value();
     _instance = vkb_instance.instance;
-    _debug_messenger = vkb_instance.debug_messenger;
+    _debugMessenger = vkb_instance.debug_messenger;
 
-    VkResult error = glfwCreateWindowSurface (_instance, _window, NULL, &_surface);
+    VkResult error = glfwCreateWindowSurface (_instance, _window, nullptr, &_surface);
     if (error != VK_SUCCESS) {
         std::cerr << "Failed to create glfw window surface. Error code: " << '\n' << error << '\n';
         return;
@@ -56,7 +58,7 @@ void VulkanEngine::initWindow() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    _window = glfwCreateWindow(_windowExtent.width, _windowExtent.height, "Vulkan", nullptr, nullptr);
+    _window = glfwCreateWindow((int)_windowExtent.width, (int)_windowExtent.height, "Vulkan", nullptr, nullptr);
 }
 
 void VulkanEngine::initSwapchain() {
@@ -82,19 +84,77 @@ void VulkanEngine::initCommands() {
     vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_mainCommandBuffer);
 }
 
-void VulkanEngine::cleanup() {
-    vkDestroyCommandPool(_device, _commandPool, nullptr);
+void VulkanEngine::initDefaultRenderPass() {
+    VkAttachmentDescription colorAttachment = {};
+    colorAttachment.format = _swapchainImageFormat;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    vkDestroySwapchainKHR(_device, _swapchain, nullptr);
+    VkAttachmentReference color_attachment_ref = {};
+    color_attachment_ref.attachment = 0;
+    color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    for (int i = 0; i < _swapchainImageViews.size(); i++) {
+    VkSubpassDescription subPass = {};
+    subPass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subPass.colorAttachmentCount = 1;
+    subPass.pColorAttachments = &color_attachment_ref;
 
-        vkDestroyImageView(_device, _swapchainImageViews[i], nullptr);
+    VkRenderPassCreateInfo render_pass_info = {};
+    render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    render_pass_info.attachmentCount = 1;
+    render_pass_info.pAttachments = &colorAttachment;
+    render_pass_info.subpassCount = 1;
+    render_pass_info.pSubpasses = &subPass;
+    vkCreateRenderPass(_device, &render_pass_info, nullptr, &_renderPass);
+}
+
+void VulkanEngine::initFrameBuffers() {
+    VkFramebufferCreateInfo fbInfo = {};
+    fbInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    fbInfo.pNext = nullptr;
+
+    fbInfo.renderPass = _renderPass;
+    fbInfo.attachmentCount = 1;
+    fbInfo.width = _windowExtent.width;
+    fbInfo.height = _windowExtent.height;
+    fbInfo.layers = 1;
+    /*std::cout << _swapchainImages.size();*/
+    const uint32_t swapchainImageCount = _swapchainImages.size();
+    _frameBuffers = std::vector<VkFramebuffer>(swapchainImageCount);
+
+    for (int i = 0; i < swapchainImageCount; i++) {
+
+        fbInfo.pAttachments = &_swapchainImageViews[i];
+        vkCreateFramebuffer(_device, &fbInfo, nullptr, &_frameBuffers[i]);
     }
+}
 
-    vkDestroyDevice(_device, nullptr);
-    vkDestroySurfaceKHR(_instance, _surface, nullptr);
-    vkb::destroy_debug_utils_messenger(_instance, _debug_messenger);
-    vkDestroyInstance(_instance, nullptr);
-    glfwTerminate();
+void VulkanEngine::cleanup() {
+
+    if (vkDeviceWaitIdle(_device)){
+        vkDestroySwapchainKHR(_device, _swapchain, nullptr);
+        vkDestroyRenderPass(_device, _renderPass, nullptr);
+        for (int i = 0; i < _frameBuffers.size(); i++) {
+            vkDestroyFramebuffer(_device, _frameBuffers[i], nullptr);
+            vkDestroyImageView(_device, _swapchainImageViews[i], nullptr);
+        }
+
+        vkDestroyCommandPool(_device, _commandPool, nullptr);
+        vkDestroySwapchainKHR(_device, _swapchain, nullptr);
+        for (auto & _swapchainImageView : _swapchainImageViews) {
+
+            vkDestroyImageView(_device, _swapchainImageView, nullptr);
+        }
+
+        vkDestroyDevice(_device, nullptr);
+        vkDestroySurfaceKHR(_instance, _surface, nullptr);
+        vkb::destroy_debug_utils_messenger(_instance, _debugMessenger);
+        vkDestroyInstance(_instance, nullptr);
+        glfwTerminate();
+    }
 }
