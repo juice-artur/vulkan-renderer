@@ -9,6 +9,7 @@ class VulkanEngine {
 public:
 
     void init();
+    void run();
     void cleanup();
 private:
     VkExtent2D _windowExtent{ 800 , 600 };
@@ -33,12 +34,17 @@ private:
     VkRenderPass _renderPass;
     std::vector<VkFramebuffer> _frameBuffers;
 
+    VkSemaphore _presentSemaphore, _renderSemaphore;
+    VkFence _renderFence;
+
     void initWindow();
     void initVulkan();
     void initSwapchain();
     void initCommands();
     void initDefaultRenderPass();
     void initFrameBuffers();
+    void initSyncStructures();
+    void draw();
 };
 
 

@@ -2,6 +2,19 @@
 #include "VulkanEngine.h"
 #include "VkBootstrap.h"
 #include "vk_initializers.h"
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+#define VK_CHECK(x)                                                 \
+	do                                                              \
+	{                                                               \
+		VkResult err = x;                                           \
+		if (err)                                                    \
+		{                                                           \
+			std::cout <<"Detected Vulkan error: " << err << std::endl; \
+			abort();                                                \
+		}                                                           \
+	} while (0)
 
 //TODO: Add error information output
 void VulkanEngine::init() {
@@ -11,6 +24,7 @@ void VulkanEngine::init() {
     initCommands();
     initDefaultRenderPass();
     initFrameBuffers();
+    initSyncStructures();
 }
 
 void VulkanEngine::initVulkan() {
@@ -123,7 +137,6 @@ void VulkanEngine::initFrameBuffers() {
     fbInfo.width = _windowExtent.width;
     fbInfo.height = _windowExtent.height;
     fbInfo.layers = 1;
-    /*std::cout << _swapchainImages.size();*/
     const uint32_t swapchainImageCount = _swapchainImages.size();
     _frameBuffers = std::vector<VkFramebuffer>(swapchainImageCount);
 
@@ -131,6 +144,88 @@ void VulkanEngine::initFrameBuffers() {
 
         fbInfo.pAttachments = &_swapchainImageViews[i];
         vkCreateFramebuffer(_device, &fbInfo, nullptr, &_frameBuffers[i]);
+    }
+}
+
+void VulkanEngine::initSyncStructures() {
+    VkFenceCreateInfo fenceCreateInfo = {};
+    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceCreateInfo.pNext = nullptr;
+
+    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    VK_CHECK(vkCreateFence(_device, &fenceCreateInfo, nullptr, &_renderFence));
+
+    VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    semaphoreCreateInfo.pNext = nullptr;
+    semaphoreCreateInfo.flags = 0;
+
+    VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_presentSemaphore));
+    VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_renderSemaphore));
+}
+
+void VulkanEngine::draw() {
+    std::cout << "1";
+    VK_CHECK(vkWaitForFences(_device, 1, &_renderFence, true, 1000000000));
+    VK_CHECK(vkResetFences(_device, 1, &_renderFence));
+    uint32_t swapchainImageIndex;
+    VK_CHECK(vkAcquireNextImageKHR(_device, _swapchain, 1000000000, _presentSemaphore, nullptr, &swapchainImageIndex));
+    VK_CHECK(vkResetCommandBuffer(_mainCommandBuffer, 0));
+
+    VkCommandBuffer cmd = _mainCommandBuffer;
+    VkCommandBufferBeginInfo cmdBeginInfo = {};
+    cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmdBeginInfo.pNext = nullptr;
+    cmdBeginInfo.pInheritanceInfo = nullptr;
+    cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
+    VkClearValue clearValue;
+    clearValue.color = { { 0.1f, 1.0f, 0.0f, 1.0f } };
+    VkRenderPassBeginInfo rpInfo = {};
+    rpInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    rpInfo.pNext = nullptr;
+    rpInfo.renderPass = _renderPass;
+    rpInfo.renderArea.offset.x = 0;
+    rpInfo.renderArea.offset.y = 0;
+    rpInfo.renderArea.extent = _windowExtent;
+    rpInfo.framebuffer = _frameBuffers[swapchainImageIndex];
+    rpInfo.clearValueCount = 1;
+    rpInfo.pClearValues = &clearValue;
+    vkCmdBeginRenderPass(cmd, &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdEndRenderPass(cmd);
+    VK_CHECK(vkEndCommandBuffer(cmd));
+
+
+    VkSubmitInfo submit = {};
+    submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit.pNext = nullptr;
+    VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    submit.pWaitDstStageMask = &waitStage;
+    submit.waitSemaphoreCount = 1;
+    submit.pWaitSemaphores = &_presentSemaphore;
+    submit.signalSemaphoreCount = 1;
+    submit.pSignalSemaphores = &_renderSemaphore;
+    submit.commandBufferCount = 1;
+    submit.pCommandBuffers = &cmd;
+    VK_CHECK(vkQueueSubmit(_graphicsQueue, 1, &submit, _renderFence));
+
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.pNext = nullptr;
+    presentInfo.pSwapchains = &_swapchain;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pWaitSemaphores = &_renderSemaphore;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pImageIndices = &swapchainImageIndex;
+    VK_CHECK(vkQueuePresentKHR(_graphicsQueue, &presentInfo));
+}
+
+void VulkanEngine::run() {
+    while (!glfwWindowShouldClose(_window)) {
+        glfwPollEvents();
+        draw();
     }
 }
 
