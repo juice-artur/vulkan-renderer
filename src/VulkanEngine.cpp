@@ -4,6 +4,7 @@
 #include "vk_initializers.h"
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <fstream>
 
 #define VK_CHECK(x)                                                 \
 	do                                                              \
@@ -25,6 +26,7 @@ void VulkanEngine::init() {
     initDefaultRenderPass();
     initFrameBuffers();
     initSyncStructures();
+    initPipelines();
 }
 
 void VulkanEngine::initVulkan() {
@@ -166,7 +168,6 @@ void VulkanEngine::initSyncStructures() {
 }
 
 void VulkanEngine::draw() {
-    std::cout << "1";
     VK_CHECK(vkWaitForFences(_device, 1, &_renderFence, true, 1000000000));
     VK_CHECK(vkResetFences(_device, 1, &_renderFence));
     uint32_t swapchainImageIndex;
@@ -251,5 +252,54 @@ void VulkanEngine::cleanup() {
         vkb::destroy_debug_utils_messenger(_instance, _debugMessenger);
         vkDestroyInstance(_instance, nullptr);
         glfwTerminate();
+    }
+}
+
+bool VulkanEngine::loadShaderModule(const char *filePath, VkShaderModule *outShaderModule) {
+    std::ifstream file(filePath, std::ios::ate | std::ios::binary);
+
+    if (!file.is_open()) {
+        return false;
+    }
+
+    size_t fileSize = (size_t)file.tellg();
+
+    std::vector<uint32_t> buffer(fileSize / sizeof(uint32_t));
+    file.seekg(0);
+    file.read((char*)buffer.data(), fileSize);
+    file.close();
+
+    VkShaderModuleCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.pNext = nullptr;
+
+    createInfo.codeSize = buffer.size() * sizeof(uint32_t);
+    createInfo.pCode = buffer.data();
+    VkShaderModule shaderModule;
+    if (vkCreateShaderModule(_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+        return false;
+    }
+    *outShaderModule = shaderModule;
+    return true;
+}
+
+void VulkanEngine::initPipelines() {
+    VkShaderModule triangleFragShader;
+    if (!loadShaderModule("../shaders/triangle.frag.spv", &triangleFragShader))
+    {
+        std::cout << "Error when building the triangle fragment shader module" << std::endl;
+    }
+    else {
+        std::cout << "Triangle fragment shader successfully loaded" << std::endl;
+    }
+
+    VkShaderModule triangleVertexShader;
+    if (!loadShaderModule("../shaders/triangle.vert.spv", &triangleVertexShader))
+    {
+        std::cout << "Error when building the triangle vertex shader module" << std::endl;
+
+    }
+    else {
+        std::cout << "Triangle vertex shader successfully loaded" << std::endl;
     }
 }
