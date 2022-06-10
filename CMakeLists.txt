@@ -85,7 +85,7 @@ set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lw
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
 
 # Build project, give it a name and includes list of file to be compiled
-add_executable(${PROJECT_NAME} ${CPP_FILES} ${HPP_FILES} src/vk_initializers.cpp src/vk_initializers.h)
+add_executable(${PROJECT_NAME} ${CPP_FILES} ${HPP_FILES})
 
 # Link the debug and release libraries to the project
 target_link_libraries( ${PROJECT_NAME} ${VULKAN_LIB_LIST} vkbootstrap glfw)

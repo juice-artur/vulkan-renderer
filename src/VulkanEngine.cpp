@@ -2,6 +2,8 @@
 #include "VulkanEngine.h"
 #include "VkBootstrap.h"
 #include "vk_initializers.h"
+#include "vk_pipeline.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <fstream>
@@ -94,9 +96,10 @@ void VulkanEngine::initSwapchain() {
 }
 
 void VulkanEngine::initCommands() {
-    VkCommandPoolCreateInfo commandPoolInfo = vkinit::command_pool_create_info(_graphicsQueueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+    VkCommandPoolCreateInfo commandPoolInfo = vkinit::commandPoolCreateInfo(_graphicsQueueFamily,
+                                                                            VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     vkCreateCommandPool(_device, &commandPoolInfo, nullptr, &_commandPool);
-    VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::command_buffer_allocate_info(_commandPool, 1);
+    VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::commandBufferAllocateInfo(_commandPool, 1);
     vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_mainCommandBuffer);
 }
 
@@ -195,6 +198,9 @@ void VulkanEngine::draw() {
     rpInfo.clearValueCount = 1;
     rpInfo.pClearValues = &clearValue;
     vkCmdBeginRenderPass(cmd, &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _trianglePipeline);
+    vkCmdDraw(cmd, 3, 1, 0, 0);
+
     vkCmdEndRenderPass(cmd);
     VK_CHECK(vkEndCommandBuffer(cmd));
 
@@ -221,6 +227,7 @@ void VulkanEngine::draw() {
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pImageIndices = &swapchainImageIndex;
     VK_CHECK(vkQueuePresentKHR(_graphicsQueue, &presentInfo));
+
 }
 
 void VulkanEngine::run() {
@@ -302,4 +309,37 @@ void VulkanEngine::initPipelines() {
     else {
         std::cout << "Triangle vertex shader successfully loaded" << std::endl;
     }
+
+    VkPipelineLayoutCreateInfo pipeline_layout_info = vkinit::pipelineLayoutCreateInfo();
+    VK_CHECK(vkCreatePipelineLayout(_device, &pipeline_layout_info, nullptr, &_trianglePipelineLayout));
+
+    PipelineBuilder pipelineBuilder;
+
+    pipelineBuilder.shaderStages.push_back(
+            vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, triangleVertexShader));
+
+    pipelineBuilder.shaderStages.push_back(
+            vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, triangleFragShader));
+    pipelineBuilder.vertexInputInfo = vkinit::vertexInputStateCreateInfo();
+    pipelineBuilder.inputAssembly = vkinit::inputAssemblyCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+    pipelineBuilder.viewport.x = 0.0f;
+    pipelineBuilder.viewport.y = 0.0f;
+    pipelineBuilder.viewport.width = (float)_windowExtent.width;
+    pipelineBuilder.viewport.height = (float)_windowExtent.height;
+    pipelineBuilder.viewport.minDepth = 0.0f;
+    pipelineBuilder.viewport.maxDepth = 1.0f;
+    pipelineBuilder.scissor.offset = { 0, 0 };
+    pipelineBuilder.scissor.extent = _windowExtent;
+
+    pipelineBuilder.rasterizer = vkinit::rasterizationStateCreateInfo(VK_POLYGON_MODE_FILL);
+
+    pipelineBuilder.multisampling = vkinit::multisamplingStateCreateInfo();
+
+    pipelineBuilder.colorBlendAttachment = vkinit::colorBlendAttachmentState();
+
+    pipelineBuilder.pipelineLayout = _trianglePipelineLayout;
+
+    _trianglePipeline = pipelineBuilder.buildPipeline(_device, _renderPass);
+
 }

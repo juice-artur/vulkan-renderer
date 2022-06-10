@@ -37,6 +37,9 @@ private:
     VkSemaphore _presentSemaphore, _renderSemaphore;
     VkFence _renderFence;
 
+    VkPipelineLayout _trianglePipelineLayout;
+    VkPipeline _trianglePipeline;
+
     void initWindow();
     void initVulkan();
     void initSwapchain();
