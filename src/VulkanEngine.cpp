@@ -3,10 +3,11 @@
 #include "VkBootstrap.h"
 #include "vk_initializers.h"
 #include "vk_pipeline.h"
+#include <fstream>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <fstream>
+
 
 #define VK_CHECK(x)                                                 \
 	do                                                              \
@@ -256,10 +257,10 @@ void VulkanEngine::draw() {
 }
 
 void VulkanEngine::run() {
- /*   while (!glfwWindowShouldClose(_window)) {
+    while (!glfwWindowShouldClose(_window)) {
         glfwPollEvents();
         draw();
-    }*/
+    }
     draw();
 }
 
