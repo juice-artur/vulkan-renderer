@@ -170,11 +170,7 @@ void VulkanEngine::initFrameBuffers() {
 }
 
 void VulkanEngine::initSyncStructures() {
-    VkFenceCreateInfo fenceCreateInfo = {};
-    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceCreateInfo.pNext = nullptr;
-
-    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    VkFenceCreateInfo fenceCreateInfo = vkinit::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 
     VK_CHECK(vkCreateFence(_device, &fenceCreateInfo, nullptr, &_renderFence));
 
@@ -182,11 +178,7 @@ void VulkanEngine::initSyncStructures() {
         vkDestroyFence(_device, _renderFence, nullptr);
     });
 
-    VkSemaphoreCreateInfo semaphoreCreateInfo = {};
-    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    semaphoreCreateInfo.pNext = nullptr;
-    semaphoreCreateInfo.flags = 0;
-
+    VkSemaphoreCreateInfo semaphoreCreateInfo = vkinit::semaphoreCreateInfo();
     VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_presentSemaphore));
     VK_CHECK(vkCreateSemaphore(_device, &semaphoreCreateInfo, nullptr, &_renderSemaphore));
 

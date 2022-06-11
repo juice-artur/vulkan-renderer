@@ -23,6 +23,9 @@ namespace vkinit {
     VkPipelineColorBlendAttachmentState colorBlendAttachmentState();
 
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo();
+
+    VkFenceCreateInfo fenceCreateInfo(VkFenceCreateFlags flags = 0);
+    VkSemaphoreCreateInfo semaphoreCreateInfo(VkSemaphoreCreateFlags flags = 0);
 }
 
 #endif //VULKAN_STEP_BY_STEP_VK_INITIALIZERS_H
