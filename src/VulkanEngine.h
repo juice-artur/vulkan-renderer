@@ -4,6 +4,7 @@
 #include "vector"
 #include "GLFW/glfw3.h"
 #include "VkBootstrap.h"
+#include "DeletionQueue.h"
 
 class VulkanEngine {
 public:
@@ -39,6 +40,8 @@ private:
 
     VkPipelineLayout _trianglePipelineLayout;
     VkPipeline _trianglePipeline;
+
+    DeletionQueue _mainDeletionQueue;
 
     void initWindow();
     void initVulkan();
