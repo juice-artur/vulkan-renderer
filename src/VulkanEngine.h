@@ -6,6 +6,7 @@
 #include "VkBootstrap.h"
 #include "DeletionQueue.h"
 #include "vk_types.h"
+#include "vk_mesh.h"
 
 class VulkanEngine {
 public:
@@ -40,7 +41,8 @@ private:
     VkFence _renderFence;
 
     VkPipelineLayout _trianglePipelineLayout;
-    VkPipeline _trianglePipeline;
+    VkPipeline _meshPipeline;
+    Mesh _triangleMesh;
 
     VmaAllocator _allocator;
 
@@ -57,7 +59,11 @@ private:
 
     void draw();
     bool loadShaderModule(const char* filePath, VkShaderModule* outShaderModule);
+
+    void loadMeshes();
+    void uploadMesh(Mesh& mesh);
 };
+
 
 
 #endif
