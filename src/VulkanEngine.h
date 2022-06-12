@@ -5,6 +5,7 @@
 #include "GLFW/glfw3.h"
 #include "VkBootstrap.h"
 #include "DeletionQueue.h"
+#include "vk_types.h"
 
 class VulkanEngine {
 public:
@@ -40,6 +41,8 @@ private:
 
     VkPipelineLayout _trianglePipelineLayout;
     VkPipeline _trianglePipeline;
+
+    VmaAllocator _allocator;
 
     DeletionQueue _mainDeletionQueue;
 
