@@ -10,8 +10,8 @@
 
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
-
-
+#include "vk_mem_alloc.h"
+#include <gtx/transform.hpp>
 
 #define VK_CHECK(x)                                                 \
 	do                                                              \
@@ -232,6 +232,24 @@ void VulkanEngine::draw() {
     VkDeviceSize offset = 0;
     vkCmdBindVertexBuffers(cmd, 0, 1, &_triangleMesh._vertexBuffer._buffer, &offset);
 
+    glm::vec3 camPos = { 0.f,0.f,-2.f };
+
+    glm::mat4 view = glm::translate(glm::mat4(1.f), camPos);
+    //camera projection
+    glm::mat4 projection = glm::perspective(glm::radians(70.f), 1700.f / 900.f, 0.1f, 200.0f);
+    projection[1][1] *= -1;
+    //model rotation
+    glm::mat4 model = glm::rotate(glm::mat4{ 1.0f }, glm::radians(_frameNumber * 0.4f), glm::vec3(0, 1, 0));
+
+    //calculate final mesh matrix
+    glm::mat4 meshMatrix = projection * view * model;
+
+    MeshPushConstants constants;
+    constants.renderMatrix = meshMatrix;
+
+    //upload the matrix to the GPU via push constants
+    vkCmdPushConstants(cmd, _meshPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
+
     vkCmdDraw(cmd, _triangleMesh._vertices.size(), 1, 0, 0);
 
     vkCmdEndRenderPass(cmd);
@@ -260,7 +278,7 @@ void VulkanEngine::draw() {
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pImageIndices = &swapchainImageIndex;
     VK_CHECK(vkQueuePresentKHR(_graphicsQueue, &presentInfo));
-
+    _frameNumber++;
 }
 
 void VulkanEngine::run() {
@@ -312,8 +330,18 @@ bool VulkanEngine::loadShaderModule(const char *filePath, VkShaderModule *outSha
 
 void VulkanEngine::initPipelines() {
 
-    VkPipelineLayoutCreateInfo pipeline_layout_info = vkinit::pipelineLayoutCreateInfo();
-    VK_CHECK(vkCreatePipelineLayout(_device, &pipeline_layout_info, nullptr, &_trianglePipelineLayout));
+    VkPipelineLayoutCreateInfo meshPipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo();
+
+    VkPushConstantRange push_constant;
+    push_constant.offset = 0;
+    push_constant.size = sizeof(MeshPushConstants);
+    push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    meshPipelineLayoutInfo.pPushConstantRanges = &push_constant;
+    meshPipelineLayoutInfo.pushConstantRangeCount = 1;
+
+    VK_CHECK(vkCreatePipelineLayout(_device, &meshPipelineLayoutInfo, nullptr, &_meshPipelineLayout));
+
 
     PipelineBuilder pipelineBuilder;
 
@@ -335,7 +363,7 @@ void VulkanEngine::initPipelines() {
 
     pipelineBuilder.colorBlendAttachment = vkinit::colorBlendAttachmentState();
 
-    pipelineBuilder.pipelineLayout = _trianglePipelineLayout;
+    pipelineBuilder.pipelineLayout =  _meshPipelineLayout;
 
     VertexInputDescription vertexDescription = Vertex::getVertexDescription();
 
@@ -381,10 +409,12 @@ void VulkanEngine::initPipelines() {
     vkDestroyShaderModule(_device, meshVertShader, nullptr);
     vkDestroyShaderModule(_device, triangleFragShader, nullptr);
 
+
+
     //adding the pipelines to the deletion queue
     _mainDeletionQueue.push_function([=]() {
         vkDestroyPipeline(_device, _meshPipeline, nullptr);
-        vkDestroyPipelineLayout(_device, _trianglePipelineLayout, nullptr);
+        vkDestroyPipelineLayout(_device, _meshPipelineLayout, nullptr);
     });
 }
 

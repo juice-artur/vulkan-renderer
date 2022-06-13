@@ -40,13 +40,14 @@ private:
     VkSemaphore _presentSemaphore, _renderSemaphore;
     VkFence _renderFence;
 
-    VkPipelineLayout _trianglePipelineLayout;
+    VkPipelineLayout _meshPipelineLayout;
+
     VkPipeline _meshPipeline;
     Mesh _triangleMesh;
 
     VmaAllocator _allocator;
-
     DeletionQueue _mainDeletionQueue;
+    int _frameNumber = 0;
 
     void initWindow();
     void initVulkan();
