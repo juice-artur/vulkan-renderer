@@ -4,6 +4,8 @@
 #include "vk_types.h"
 #include "vec3.hpp"
 #include <vector>
+#include "tiny_obj_loader.h"
+#include <iostream>
 
 struct VertexInputDescription {
     std::vector<VkVertexInputBindingDescription> bindings;
@@ -23,5 +25,4 @@ struct Mesh {
     std::vector<Vertex> _vertices;
     AllocatedBuffer _vertexBuffer;
 };
-
 #endif //VULKAN_STEP_BY_STEP_VK_MESH_H
