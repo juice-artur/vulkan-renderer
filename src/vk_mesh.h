@@ -24,5 +24,6 @@ struct Vertex {
 struct Mesh {
     std::vector<Vertex> _vertices;
     AllocatedBuffer _vertexBuffer;
+    bool loadFromObj(const char* filename);
 };
 #endif //VULKAN_STEP_BY_STEP_VK_MESH_H

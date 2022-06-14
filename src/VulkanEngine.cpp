@@ -230,7 +230,7 @@ void VulkanEngine::draw() {
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _meshPipeline);
     VkDeviceSize offset = 0;
-    vkCmdBindVertexBuffers(cmd, 0, 1, &_triangleMesh._vertexBuffer._buffer, &offset);
+    vkCmdBindVertexBuffers(cmd, 0, 1, &_bunnyMesh._vertexBuffer._buffer, &offset);
 
     glm::vec3 camPos = { 0.f,0.f,-2.f };
 
@@ -250,7 +250,7 @@ void VulkanEngine::draw() {
     //upload the matrix to the GPU via push constants
     vkCmdPushConstants(cmd, _meshPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
 
-    vkCmdDraw(cmd, _triangleMesh._vertices.size(), 1, 0, 0);
+    vkCmdDraw(cmd, _bunnyMesh._vertices.size(), 1, 0, 0);
 
     vkCmdEndRenderPass(cmd);
     VK_CHECK(vkEndCommandBuffer(cmd));
@@ -430,6 +430,10 @@ void VulkanEngine::loadMeshes() {
     _triangleMesh._vertices[1].color = { 0.0f, 1.0f, 0.0f };
     _triangleMesh._vertices[2].color = { 0.0f, 0.0f, 1.0f };
     uploadMesh(_triangleMesh);
+
+    _bunnyMesh.loadFromObj("../assets/bunny.obj");
+
+    uploadMesh(_bunnyMesh);
 }
 
 void VulkanEngine::uploadMesh(Mesh &mesh) {

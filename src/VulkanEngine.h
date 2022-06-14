@@ -44,6 +44,7 @@ private:
 
     VkPipeline _meshPipeline;
     Mesh _triangleMesh;
+    Mesh _bunnyMesh;
 
     VmaAllocator _allocator;
     DeletionQueue _mainDeletionQueue;
