@@ -47,6 +47,11 @@ private:
     Mesh _bunnyMesh;
 
     VmaAllocator _allocator;
+
+    VkImageView _depthImageView;
+    AllocatedImage _depthImage;
+    VkFormat _depthFormat;
+
     DeletionQueue _mainDeletionQueue;
     int _frameNumber = 0;
 

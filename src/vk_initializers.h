@@ -26,6 +26,10 @@ namespace vkinit {
 
     VkFenceCreateInfo fenceCreateInfo(VkFenceCreateFlags flags = 0);
     VkSemaphoreCreateInfo semaphoreCreateInfo(VkSemaphoreCreateFlags flags = 0);
+
+    VkImageCreateInfo imageCreateInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);
+    VkImageViewCreateInfo imageviewCreateInfo(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags);
+    VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo(bool bDepthTest, bool bDepthWrite, VkCompareOp compareOp);
 }
 
 #endif //VULKAN_STEP_BY_STEP_VK_INITIALIZERS_H

@@ -9,6 +9,11 @@ struct AllocatedBuffer {
     VmaAllocation _allocation;
 };
 
+struct AllocatedImage {
+    VkImage _image;
+    VmaAllocation _allocation;
+};
+
 struct MeshPushConstants {
     glm::vec4 data;
     glm::mat4 renderMatrix;
