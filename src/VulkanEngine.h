@@ -58,10 +58,6 @@ private:
     VkSemaphore _presentSemaphore, _renderSemaphore;
     VkFence _renderFence;
 
-    VkPipelineLayout _meshPipelineLayout;
-
-    VkPipeline _meshPipeline;
-
     VmaAllocator _allocator;
 
     VkImageView _depthImageView;

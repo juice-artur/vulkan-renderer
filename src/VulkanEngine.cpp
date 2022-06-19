@@ -392,7 +392,8 @@ void VulkanEngine::initPipelines() {
     meshPipelineLayoutInfo.pPushConstantRanges = &push_constant;
     meshPipelineLayoutInfo.pushConstantRangeCount = 1;
 
-    VK_CHECK(vkCreatePipelineLayout(_device, &meshPipelineLayoutInfo, nullptr, &_meshPipelineLayout));
+    VkPipelineLayout meshPipelineLayout;
+    VK_CHECK(vkCreatePipelineLayout(_device, &meshPipelineLayoutInfo, nullptr, &meshPipelineLayout));
 
 
     PipelineBuilder pipelineBuilder;
@@ -417,7 +418,7 @@ void VulkanEngine::initPipelines() {
 
     pipelineBuilder.depthStencil = vkinit::depthStencilCreateInfo(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
-    pipelineBuilder.pipelineLayout = _meshPipelineLayout;
+    pipelineBuilder.pipelineLayout = meshPipelineLayout;
 
     VertexInputDescription vertexDescription = Vertex::getVertexDescription();
 
@@ -453,9 +454,9 @@ void VulkanEngine::initPipelines() {
             vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, triangleFragShader));
 
     //build the mesh triangle pipeline
-    _meshPipeline = pipelineBuilder.buildPipeline(_device, _renderPass);
+    VkPipeline meshPipeline = pipelineBuilder.buildPipeline(_device, _renderPass);
 
-    createMaterial(_meshPipeline, _meshPipelineLayout, "defaultmesh");
+    createMaterial(meshPipeline, meshPipelineLayout, "defaultmesh");
 
     //deleting all of the vulkan shaders
     vkDestroyShaderModule(_device, meshVertShader, nullptr);
@@ -465,8 +466,8 @@ void VulkanEngine::initPipelines() {
 
     //adding the pipelines to the deletion queue
     _mainDeletionQueue.push_function([=]() {
-        vkDestroyPipeline(_device, _meshPipeline, nullptr);
-        vkDestroyPipelineLayout(_device, _meshPipelineLayout, nullptr);
+        vkDestroyPipeline(_device, meshPipeline, nullptr);
+        vkDestroyPipelineLayout(_device, meshPipelineLayout, nullptr);
     });
 }
 
