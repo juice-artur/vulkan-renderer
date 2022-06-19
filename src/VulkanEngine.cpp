@@ -92,6 +92,7 @@ void VulkanEngine::initWindow() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     _window = glfwCreateWindow((int) _windowExtent.width, (int) _windowExtent.height, "Vulkan", nullptr, nullptr);
+    glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void VulkanEngine::initSwapchain() {
@@ -284,7 +285,7 @@ void VulkanEngine::draw() {
 
     VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
     VkClearValue clearValue;
-    clearValue.color = {{0.1f, 1.0f, 0.0f, 1.0f}};
+    clearValue.color = {{0, 0, 0.0f, 1.0f}};
 
     VkClearValue depthClear;
     depthClear.depthStencil.depth = 1.f;
@@ -335,10 +336,14 @@ void VulkanEngine::draw() {
 
 void VulkanEngine::run() {
     while (!glfwWindowShouldClose(_window)) {
+        float currentFrame = glfwGetTime();
+        _deltaTime = currentFrame - _lastFrame;
+        _lastFrame = currentFrame;
+
         glfwPollEvents();
+        processInput(_window);
         draw();
     }
-    draw();
 }
 
 void VulkanEngine::cleanup() {
@@ -567,9 +572,8 @@ void VulkanEngine::initScene() {
 }
 
 void VulkanEngine::drawObjects(VkCommandBuffer cmd, RenderObject *first, int count) {
-    glm::vec3 camPos = {0.f, -6.f, -10.f};
 
-    glm::mat4 view = glm::translate(glm::mat4(1.f), camPos);
+    glm::mat4 view = glm::lookAt(_cameraPos, _cameraPos + _cameraFront, _cameraUp);
     glm::mat4 projection = glm::perspective(glm::radians(70.f), 1700.f / 900.f, 0.1f, 200.0f);
     projection[1][1] *= -1;
 
@@ -599,4 +603,45 @@ void VulkanEngine::drawObjects(VkCommandBuffer cmd, RenderObject *first, int cou
         }
         vkCmdDraw(cmd, object.mesh->_vertices.size(), 1, 0, 0);
     }
+}
+
+void VulkanEngine::processInput(GLFWwindow *window) {
+    mouseMovement(window);
+    if (glfwGetKey(_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(_window, true);
+
+    float cameraSpeed = 2.5 * _deltaTime;
+    if (glfwGetKey(_window, GLFW_KEY_W) == GLFW_PRESS)
+        _cameraPos += cameraSpeed * _cameraFront;
+    if (glfwGetKey(_window, GLFW_KEY_S) == GLFW_PRESS)
+        _cameraPos -= cameraSpeed * _cameraFront;
+    if (glfwGetKey(_window, GLFW_KEY_A) == GLFW_PRESS)
+        _cameraPos -= glm::normalize(glm::cross(_cameraFront, _cameraUp)) * cameraSpeed;
+    if (glfwGetKey(_window, GLFW_KEY_D) == GLFW_PRESS)
+        _cameraPos += glm::normalize(glm::cross(_cameraFront, _cameraUp)) * cameraSpeed;
+}
+
+
+void VulkanEngine::mouseMovement(GLFWwindow *window) {
+    double xPos;
+    double yPos;
+    glfwGetCursorPos(window, &xPos, &yPos);
+    glfwSetCursorPos(window, _windowExtent.width / 2.0, _windowExtent.height / 2.0);
+
+    float xOffset = xPos - _lastX;
+    float yOffset = _lastY - yPos;
+    xOffset *= _sensitivity;
+    yOffset *= _sensitivity;
+    _yaw += xOffset;
+    _pitch += yOffset;
+
+    calculationDirection();
+}
+
+void VulkanEngine::calculationDirection() {
+    glm::vec3 direction;
+    direction.x = cos(glm::radians(_yaw)) * cos(glm::radians(_pitch));
+    direction.y = sin(glm::radians(_pitch));
+    direction.z = sin(glm::radians(_yaw)) * cos(glm::radians(_pitch));
+    _cameraFront = glm::normalize(direction);
 }

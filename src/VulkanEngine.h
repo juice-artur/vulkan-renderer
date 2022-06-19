@@ -71,6 +71,20 @@ private:
     DeletionQueue _mainDeletionQueue;
     int _frameNumber = 0;
 
+    glm::vec3 _cameraPos = glm::vec3(0.f, -6.f, -10.f);
+    glm::vec3 _cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 _cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+
+    float _deltaTime = 0.0f;
+    float _lastFrame = 0.0f;
+
+    float _lastX = _windowExtent.width / 2.0;
+    float _lastY = _windowExtent.height / 2.0;
+
+    float _yaw = -90.0f;
+    float _pitch = 0.0f;
+    float _sensitivity = 0.05;
+
     void initWindow();
 
     void initVulkan();
@@ -105,6 +119,11 @@ private:
 
     Mesh *getMesh(const std::string &name);
 
+    void processInput(GLFWwindow* window);
+
+    void mouseMovement(GLFWwindow *window);
+
+    void calculationDirection();
 };
 
 
