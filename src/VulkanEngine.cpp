@@ -552,8 +552,8 @@ void VulkanEngine::initScene() {
 
     _renderables.push_back(monkey);
 
-    for (int x = -200; x <= 200; x++) {
-        for (int y = -200; y <= 200; y++) {
+    for (int x = -20; x <= 20; x++) {
+        for (int y = -20; y <= 20; y++) {
 
             RenderObject tri;
             tri.mesh = getMesh("triangle");
