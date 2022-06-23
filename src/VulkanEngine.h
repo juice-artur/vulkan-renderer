@@ -22,6 +22,7 @@ struct RenderObject {
 
     glm::mat4 transformMatrix;
 };
+constexpr unsigned int FRAME_OVERLAP = 2;
 
 class VulkanEngine {
 public:
@@ -49,14 +50,11 @@ private:
 
     VkQueue _graphicsQueue;
     uint32_t _graphicsQueueFamily;
-    VkCommandPool _commandPool;
-    VkCommandBuffer _mainCommandBuffer;
+
+    FrameData _frames[FRAME_OVERLAP];
 
     VkRenderPass _renderPass;
     std::vector<VkFramebuffer> _frameBuffers;
-
-    VkSemaphore _presentSemaphore, _renderSemaphore;
-    VkFence _renderFence;
 
     VmaAllocator _allocator;
 
@@ -113,17 +111,19 @@ private:
 
     void initScene();
 
+    void processInput(GLFWwindow *window);
+
+    void mouseMovement(GLFWwindow *window);
+
+    void calculationDirection();
+
     Material *createMaterial(VkPipeline pipeline, VkPipelineLayout layout, const std::string &name);
 
     Material *getMaterial(const std::string &name);
 
     Mesh *getMesh(const std::string &name);
 
-    void processInput(GLFWwindow* window);
-
-    void mouseMovement(GLFWwindow *window);
-
-    void calculationDirection();
+    FrameData& getCurrentFrame();
 };
 
 

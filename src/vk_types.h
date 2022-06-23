@@ -19,4 +19,12 @@ struct MeshPushConstants {
     glm::mat4 renderMatrix;
 };
 
+struct FrameData {
+    VkSemaphore _presentSemaphore, _renderSemaphore;
+    VkFence _renderFence;
+
+    VkCommandPool _commandPool;
+    VkCommandBuffer _mainCommandBuffer;
+};
+
 #endif //VULKAN_STEP_BY_STEP_VK_TYPES_H
