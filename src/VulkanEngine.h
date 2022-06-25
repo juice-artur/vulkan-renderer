@@ -17,9 +17,7 @@ struct Material {
 
 struct RenderObject {
     Mesh *mesh;
-
     Material *material;
-
     glm::mat4 transformMatrix;
 };
 constexpr unsigned int FRAME_OVERLAP = 2;
@@ -43,6 +41,8 @@ private:
     VkDevice _device;
     VkSurfaceKHR _surface;
 
+    VkPhysicalDeviceProperties _gpuProperties;
+
     VkSwapchainKHR _swapchain;
     VkFormat _swapchainImageFormat;
     std::vector<VkImage> _swapchainImages;
@@ -64,6 +64,9 @@ private:
 
     VkDescriptorSetLayout _globalSetLayout;
     VkDescriptorPool _descriptorPool;
+
+    GPUSceneData _sceneParameters;
+    AllocatedBuffer _sceneParameterBuffer;
 
     std::vector<RenderObject> _renderables;
     std::unordered_map<std::string, Material> _materials;
@@ -131,6 +134,8 @@ private:
     FrameData& getCurrentFrame();
 
     AllocatedBuffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+
+    size_t padUniformBufferSize(size_t originalSize);
 };
 
 

@@ -25,6 +25,14 @@ struct GPUCameraData{
     glm::mat4 viewproj;
 };
 
+struct GPUSceneData {
+    glm::vec4 fogColor;
+    glm::vec4 fogDistances;
+    glm::vec4 ambientColor;
+    glm::vec4 sunlightDirection;
+    glm::vec4 sunlightColor;
+};
+
 struct FrameData {
     VkSemaphore _presentSemaphore, _renderSemaphore;
     VkFence _renderFence;
