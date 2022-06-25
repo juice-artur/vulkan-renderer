@@ -62,6 +62,9 @@ private:
     AllocatedImage _depthImage;
     VkFormat _depthFormat;
 
+    VkDescriptorSetLayout _globalSetLayout;
+    VkDescriptorPool _descriptorPool;
+
     std::vector<RenderObject> _renderables;
     std::unordered_map<std::string, Material> _materials;
     std::unordered_map<std::string, Mesh> _meshes;
@@ -117,6 +120,8 @@ private:
 
     void calculationDirection();
 
+    void initDescriptors();
+
     Material *createMaterial(VkPipeline pipeline, VkPipelineLayout layout, const std::string &name);
 
     Material *getMaterial(const std::string &name);
@@ -124,6 +129,8 @@ private:
     Mesh *getMesh(const std::string &name);
 
     FrameData& getCurrentFrame();
+
+    AllocatedBuffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 };
 
 
