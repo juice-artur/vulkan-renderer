@@ -63,6 +63,7 @@ private:
     VkFormat _depthFormat;
 
     VkDescriptorSetLayout _globalSetLayout;
+    VkDescriptorSetLayout _objectSetLayout;
     VkDescriptorPool _descriptorPool;
 
     GPUSceneData _sceneParameters;

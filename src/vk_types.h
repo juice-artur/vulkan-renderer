@@ -42,6 +42,13 @@ struct FrameData {
 
     AllocatedBuffer cameraBuffer;
     VkDescriptorSet globalDescriptor;
+
+    AllocatedBuffer objectBuffer;
+    VkDescriptorSet objectDescriptor;
+};
+
+struct GPUObjectData{
+    glm::mat4 modelMatrix;
 };
 
 #endif //VULKAN_STEP_BY_STEP_VK_TYPES_H
