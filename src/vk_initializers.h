@@ -37,6 +37,9 @@ namespace vkinit {
 
     VkDescriptorSetLayoutBinding
     descriptorSetLayoutBinding(VkDescriptorType type, VkShaderStageFlags stageFlags, uint32_t binding);
+
+    VkCommandBufferBeginInfo commandBufferBeginInfo(VkCommandBufferUsageFlags flags = 0);
+    VkSubmitInfo submitInfo(VkCommandBuffer* cmd);
 }
 
 #endif //VULKAN_STEP_BY_STEP_VK_INITIALIZERS_H

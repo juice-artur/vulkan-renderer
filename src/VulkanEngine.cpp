@@ -162,6 +162,18 @@ void VulkanEngine::initCommands() {
         });
     }
 
+
+    VkCommandPoolCreateInfo uploadCommandPoolInfo = vkinit::commandPoolCreateInfo(_graphicsQueueFamily);
+    VK_CHECK(vkCreateCommandPool(_device, &uploadCommandPoolInfo, nullptr, &_uploadContext._commandPool));
+
+    _mainDeletionQueue.push_function([=]() {
+        vkDestroyCommandPool(_device, _uploadContext._commandPool, nullptr);
+    });
+
+    VkCommandBufferAllocateInfo cmdAllocInfo = vkinit::commandBufferAllocateInfo(_uploadContext._commandPool, 1);
+    VkCommandBuffer cmd;
+    VK_CHECK(vkAllocateCommandBuffers(_device, &cmdAllocInfo, &_uploadContext._commandBuffer));
+
 }
 
 void VulkanEngine::initDefaultRenderPass() {
@@ -269,7 +281,13 @@ void VulkanEngine::initFrameBuffers() {
 
 void VulkanEngine::initSyncStructures() {
     VkFenceCreateInfo fenceCreateInfo = vkinit::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+    VkFenceCreateInfo uploadFenceCreateInfo = vkinit::fenceCreateInfo();
     VkSemaphoreCreateInfo semaphoreCreateInfo = vkinit::semaphoreCreateInfo();
+
+    VK_CHECK(vkCreateFence(_device, &uploadFenceCreateInfo, nullptr, &_uploadContext._uploadFence));
+    _mainDeletionQueue.push_function([=]() {
+        vkDestroyFence(_device, _uploadContext._uploadFence, nullptr);
+    });
 
     for (int i = 0; i < FRAME_OVERLAP; i++) {
 
@@ -525,15 +543,41 @@ void VulkanEngine::loadMeshes() {
 }
 
 void VulkanEngine::uploadMesh(Mesh &mesh) {
-    VkBufferCreateInfo bufferInfo = {};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = mesh._vertices.size() * sizeof(Vertex);
-    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    const size_t bufferSize= mesh._vertices.size() * sizeof(Vertex);
+    VkBufferCreateInfo stagingBufferInfo = {};
+    stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    stagingBufferInfo.pNext = nullptr;
+
+    stagingBufferInfo.size = bufferSize;
+    stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     VmaAllocationCreateInfo vmaallocInfo = {};
-    vmaallocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+    vmaallocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-    VK_CHECK(vmaCreateBuffer(_allocator, &bufferInfo, &vmaallocInfo,
+    AllocatedBuffer stagingBuffer;
+
+    VK_CHECK(vmaCreateBuffer(_allocator, &stagingBufferInfo, &vmaallocInfo,
+                             &stagingBuffer._buffer,
+                             &stagingBuffer._allocation,
+                             nullptr));
+
+    _mainDeletionQueue.push_function([=]() {
+        vmaDestroyBuffer(_allocator, mesh._vertexBuffer._buffer, mesh._vertexBuffer._allocation);
+    });
+
+    void* data;
+    vmaMapMemory(_allocator, stagingBuffer._allocation, &data);
+    memcpy(data, mesh._vertices.data(), mesh._vertices.size() * sizeof(Vertex));
+    vmaUnmapMemory(_allocator, stagingBuffer._allocation);
+
+    VkBufferCreateInfo vertexBufferInfo = {};
+    vertexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vertexBufferInfo.pNext = nullptr;
+    vertexBufferInfo.size = bufferSize;
+    vertexBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    vmaallocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+    VK_CHECK(vmaCreateBuffer(_allocator, &vertexBufferInfo, &vmaallocInfo,
                              &mesh._vertexBuffer._buffer,
                              &mesh._vertexBuffer._allocation,
                              nullptr));
@@ -542,10 +586,15 @@ void VulkanEngine::uploadMesh(Mesh &mesh) {
         vmaDestroyBuffer(_allocator, mesh._vertexBuffer._buffer, mesh._vertexBuffer._allocation);
     });
 
-    void *data;
-    vmaMapMemory(_allocator, mesh._vertexBuffer._allocation, &data);
-    memcpy(data, mesh._vertices.data(), mesh._vertices.size() * sizeof(Vertex));
-    vmaUnmapMemory(_allocator, mesh._vertexBuffer._allocation);
+    immediateSubmit([=](VkCommandBuffer cmd) {
+        VkBufferCopy copy;
+        copy.dstOffset = 0;
+        copy.srcOffset = 0;
+        copy.size = bufferSize;
+        vkCmdCopyBuffer(cmd, stagingBuffer._buffer, mesh._vertexBuffer._buffer, 1, &copy);
+    });
+
+    vmaDestroyBuffer(_allocator, stagingBuffer._buffer, stagingBuffer._allocation);
 }
 
 Material *VulkanEngine::createMaterial(VkPipeline pipeline, VkPipelineLayout layout, const std::string &name) {
@@ -862,4 +911,18 @@ size_t VulkanEngine::padUniformBufferSize(size_t originalSize) {
         alignedSize = (alignedSize + minUboAlignment - 1) & ~(minUboAlignment - 1);
     }
     return alignedSize;
+}
+
+void VulkanEngine::immediateSubmit(std::function<void(VkCommandBuffer)> &&function) {
+    VkCommandBuffer cmd = _uploadContext._commandBuffer;
+    VkCommandBufferBeginInfo cmdBeginInfo = vkinit::commandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBeginInfo));
+    function(cmd);
+    VK_CHECK(vkEndCommandBuffer(cmd));
+    VkSubmitInfo submit = vkinit::submitInfo(&cmd);
+    VK_CHECK(vkQueueSubmit(_graphicsQueue, 1, &submit, _uploadContext._uploadFence));
+
+    vkWaitForFences(_device, 1, &_uploadContext._uploadFence, true, 9999999999);
+    vkResetFences(_device, 1, &_uploadContext._uploadFence);
+    vkResetCommandPool(_device, _uploadContext._commandPool, 0);
 }

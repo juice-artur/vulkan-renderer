@@ -34,6 +34,8 @@ public:
 private:
     VkExtent2D _windowExtent{800, 600};
 
+    UploadContext _uploadContext;
+
     GLFWwindow *_window;
     VkInstance _instance;
     VkDebugUtilsMessengerEXT _debugMessenger;
@@ -125,6 +127,8 @@ private:
     void calculationDirection();
 
     void initDescriptors();
+
+    void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
     Material *createMaterial(VkPipeline pipeline, VkPipelineLayout layout, const std::string &name);
 

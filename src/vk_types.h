@@ -47,6 +47,12 @@ struct FrameData {
     VkDescriptorSet objectDescriptor;
 };
 
+struct UploadContext {
+    VkFence _uploadFence;
+    VkCommandPool _commandPool;
+    VkCommandBuffer _commandBuffer;
+};
+
 struct GPUObjectData{
     glm::mat4 modelMatrix;
 };
