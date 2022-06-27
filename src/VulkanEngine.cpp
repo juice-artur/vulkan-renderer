@@ -447,6 +447,15 @@ void VulkanEngine::initPipelines() {
     VkPipelineLayout meshPipelineLayout;
     VK_CHECK(vkCreatePipelineLayout(_device, &meshPipelineLayoutInfo, nullptr, &meshPipelineLayout));
 
+    VkPipelineLayoutCreateInfo texturedPipelineLayoutInfo = meshPipelineLayoutInfo;
+    VkDescriptorSetLayout texturedSetLayouts[] = { _globalSetLayout, _objectSetLayout,_singleTextureSetLayout };
+
+    texturedPipelineLayoutInfo.setLayoutCount = 3;
+    texturedPipelineLayoutInfo.pSetLayouts = texturedSetLayouts;
+
+    VkPipelineLayout texturedPipeLayout;
+    VK_CHECK(vkCreatePipelineLayout(_device, &texturedPipelineLayoutInfo, nullptr, &texturedPipeLayout));
+
 
     PipelineBuilder pipelineBuilder;
 
@@ -497,6 +506,12 @@ void VulkanEngine::initPipelines() {
         std::cout << "Triangle vertex shader successfully loaded" << std::endl;
     }
 
+    VkShaderModule texturedMeshShader;
+    if (!loadShaderModule("../shaders/textured_lit.frag.spv", &texturedMeshShader))
+    {
+        std::cout << "Error when building the textured mesh shader" << std::endl;
+    }
+
     //add the other shaders
     pipelineBuilder.shaderStages.push_back(
             vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, meshVertShader));
@@ -510,14 +525,28 @@ void VulkanEngine::initPipelines() {
 
     createMaterial(meshPipeline, meshPipelineLayout, "defaultmesh");
 
+    pipelineBuilder.shaderStages.clear();
+    pipelineBuilder.shaderStages.push_back(
+            vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, meshVertShader));
+
+    pipelineBuilder.shaderStages.push_back(
+            vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, texturedMeshShader));
+
+    pipelineBuilder.pipelineLayout = texturedPipeLayout;
+    VkPipeline texPipeline = pipelineBuilder.buildPipeline(_device, _renderPass);
+    createMaterial(texPipeline, texturedPipeLayout, "texturedmesh");
+
     //deleting all of the vulkan shaders
     vkDestroyShaderModule(_device, meshVertShader, nullptr);
     vkDestroyShaderModule(_device, triangleFragShader, nullptr);
+    vkDestroyShaderModule(_device, texturedMeshShader, nullptr);
 
     //adding the pipelines to the deletion queue
     _mainDeletionQueue.push_function([=]() {
         vkDestroyPipeline(_device, meshPipeline, nullptr);
         vkDestroyPipelineLayout(_device, meshPipelineLayout, nullptr);
+        vkDestroyPipeline(_device, texPipeline, nullptr);
+        vkDestroyPipelineLayout(_device, texturedPipeLayout, nullptr);
     });
 }
 
@@ -542,6 +571,13 @@ void VulkanEngine::loadMeshes() {
 
     _meshes["bunny"] = bunnyMesh;
     _meshes["triangle"] = triangleMesh;
+
+    Mesh sponza{};
+    sponza.loadFromObj("../assets/sponza/sponza.obj");
+
+    uploadMesh(sponza);
+
+    _meshes["sponza"] = sponza;
 }
 
 void VulkanEngine::uploadMesh(Mesh &mesh) {
@@ -633,6 +669,13 @@ void VulkanEngine::initScene() {
 
     _renderables.push_back(monkey);
 
+    RenderObject map;
+    map.mesh = getMesh("sponza");
+    map.material = getMaterial("texturedmesh");
+    map.transformMatrix = glm::translate(glm::vec3{ 5,-10,0 });
+
+    _renderables.push_back(map);
+
     for (int x = -20; x <= 20; x++) {
         for (int y = -20; y <= 20; y++) {
 
@@ -645,6 +688,34 @@ void VulkanEngine::initScene() {
             _renderables.push_back(tri);
         }
     }
+
+    VkSamplerCreateInfo samplerInfo = vkinit::samplerCreateInfo(VK_FILTER_NEAREST);
+
+    VkSampler blockySampler;
+    vkCreateSampler(_device, &samplerInfo, nullptr, &blockySampler);
+
+
+
+    Material* texturedMat=	getMaterial("texturedmesh");
+
+    //allocate the descriptor set for single-texture to use on the material
+    VkDescriptorSetAllocateInfo allocInfo = {};
+    allocInfo.pNext = nullptr;
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = _descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &_singleTextureSetLayout;
+
+    vkAllocateDescriptorSets(_device, &allocInfo, &texturedMat->textureSet);
+
+    VkDescriptorImageInfo imageBufferInfo;
+    imageBufferInfo.sampler = blockySampler;
+    imageBufferInfo.imageView = _loadedTextures["sponza_diffuse"].imageView;
+    imageBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    VkWriteDescriptorSet texture1 = vkinit::writeDescriptorImage(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, texturedMat->textureSet, &imageBufferInfo, 0);
+
+    vkUpdateDescriptorSets(_device, 1, &texture1, 0, nullptr);
 }
 
 void VulkanEngine::drawObjects(VkCommandBuffer cmd, RenderObject *first, int count) {
@@ -715,6 +786,11 @@ void VulkanEngine::drawObjects(VkCommandBuffer cmd, RenderObject *first, int cou
             VkDeviceSize offset = 0;
             vkCmdBindVertexBuffers(cmd, 0, 1, &object.mesh->_vertexBuffer._buffer, &offset);
             lastMesh = object.mesh;
+        }
+
+        if (object.material->textureSet != VK_NULL_HANDLE) {
+            vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, object.material->pipelineLayout, 2, 1, &object.material->textureSet, 0, nullptr);
+
         }
         vkCmdDraw(cmd, object.mesh->_vertices.size(), 1, 0, i);
     }
@@ -790,7 +866,8 @@ void VulkanEngine::initDescriptors() {
             {
                     {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10},
                     {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10},
-                    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10}
+                    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10},
+                    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10 }
             };
 
     VkDescriptorPoolCreateInfo pool_info = {};
@@ -828,6 +905,17 @@ void VulkanEngine::initDescriptors() {
     set2info.pNext = nullptr;
     set2info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     set2info.pBindings = &objectBind;
+
+    VkDescriptorSetLayoutBinding textureBind = vkinit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0);
+
+    VkDescriptorSetLayoutCreateInfo set3info = {};
+    set3info.bindingCount = 1;
+    set3info.flags = 0;
+    set3info.pNext = nullptr;
+    set3info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    set3info.pBindings = &textureBind;
+
+    vkCreateDescriptorSetLayout(_device, &set3info, nullptr, &_singleTextureSetLayout);
 
     vkCreateDescriptorSetLayout(_device, &set2info, nullptr, &_objectSetLayout);
 

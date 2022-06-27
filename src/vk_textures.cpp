@@ -29,7 +29,9 @@ bool vkutil::loadImageFromFile(VulkanEngine &engine, const char *file, Allocated
     vmaMapMemory(engine._allocator, stagingBuffer._allocation, &data);
 
     memcpy(data, pixelPtr, static_cast<size_t>(imageSize));
+
     vmaUnmapMemory(engine._allocator, stagingBuffer._allocation);
+
     stbi_image_free(pixels);
 
     VkExtent3D imageExtent;
@@ -38,7 +40,7 @@ bool vkutil::loadImageFromFile(VulkanEngine &engine, const char *file, Allocated
     imageExtent.depth = 1;
 
     VkImageCreateInfo dimgInfo = vkinit::imageCreateInfo(imageFormat,
-                                                         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                                          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                                                          imageExtent);
 
     AllocatedImage newImage;
@@ -94,18 +96,18 @@ bool vkutil::loadImageFromFile(VulkanEngine &engine, const char *file, Allocated
 
         vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr,
                              0, nullptr, 1, &imageBarrier_toReadable);
-
-        engine._mainDeletionQueue.push_function([=]() {
-            vmaDestroyImage(engine._allocator, newImage._image, newImage._allocation);
-        });
-
-        vmaDestroyBuffer(engine._allocator, stagingBuffer._buffer, stagingBuffer._allocation);
-
-        std::cout << "Texture loaded successfully " << file << std::endl;
-
-        outImage = newImage;
-        return true;
     });
 
+
+    engine._mainDeletionQueue.push_function([=]() {
+
+        vmaDestroyImage(engine._allocator, newImage._image, newImage._allocation);
+    });
+
+    vmaDestroyBuffer(engine._allocator, stagingBuffer._buffer, stagingBuffer._allocation);
+
+    std::cout << "Texture loaded succesfully " << file << std::endl;
+
+    outImage = newImage;
     return true;
 }
