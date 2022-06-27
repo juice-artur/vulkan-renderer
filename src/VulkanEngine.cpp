@@ -3,6 +3,7 @@
 #include "VkBootstrap.h"
 #include "vk_initializers.h"
 #include "vk_pipeline.h"
+#include "vk_textures.h"
 #include <fstream>
 
 #define GLFW_INCLUDE_VULKAN
@@ -37,6 +38,7 @@ void VulkanEngine::init() {
     initSyncStructures();
     initDescriptors();
     initPipelines();
+    loadImages();
     loadMeshes();
     initScene();
 }
@@ -925,4 +927,15 @@ void VulkanEngine::immediateSubmit(std::function<void(VkCommandBuffer)> &&functi
     vkWaitForFences(_device, 1, &_uploadContext._uploadFence, true, 9999999999);
     vkResetFences(_device, 1, &_uploadContext._uploadFence);
     vkResetCommandPool(_device, _uploadContext._commandPool, 0);
+}
+
+void VulkanEngine::loadImages() {
+    Texture sponza;
+
+    vkutil::loadImageFromFile(*this, "../assets/sponza/vrata_kr.JPG", sponza.image);
+
+    VkImageViewCreateInfo imageinfo = vkinit::imageviewCreateInfo(VK_FORMAT_R8G8B8A8_SRGB, sponza.image._image, VK_IMAGE_ASPECT_COLOR_BIT);
+    vkCreateImageView(_device, &imageinfo, nullptr, &sponza.imageView);
+
+    _loadedTextures["sponza_diffuse"] = sponza;
 }

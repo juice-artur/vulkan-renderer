@@ -89,7 +89,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archi
 add_executable(${PROJECT_NAME} ${CPP_FILES} ${HPP_FILES})
 
 # Link the debug and release libraries to the project
-target_link_libraries( ${PROJECT_NAME} ${VULKAN_LIB_LIST} vkbootstrap glfw vma glm tinyobjloader )
+target_link_libraries( ${PROJECT_NAME} ${VULKAN_LIB_LIST} vkbootstrap glfw vma glm tinyobjloader stb_image)
 
 # Define project properties
 set_property(TARGET ${PROJECT_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/binaries)

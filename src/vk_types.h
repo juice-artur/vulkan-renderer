@@ -57,4 +57,10 @@ struct GPUObjectData{
     glm::mat4 modelMatrix;
 };
 
+struct Texture {
+    AllocatedImage image;
+    VkImageView imageView;
+};
+
+
 #endif //VULKAN_STEP_BY_STEP_VK_TYPES_H

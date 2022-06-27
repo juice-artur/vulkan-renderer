@@ -6,7 +6,7 @@
 #include "vector"
 #include "GLFW/glfw3.h"
 #include "VkBootstrap.h"
-#include "DeletionQueue.h"
+#include "deletion_queue.h"
 #include "vk_types.h"
 #include "vk_mesh.h"
 
@@ -30,6 +30,14 @@ public:
     void run();
 
     void cleanup();
+
+    void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
+
+    AllocatedBuffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+
+    VmaAllocator _allocator;
+
+    deletion_queue _mainDeletionQueue;
 
 private:
     VkExtent2D _windowExtent{800, 600};
@@ -58,8 +66,6 @@ private:
     VkRenderPass _renderPass;
     std::vector<VkFramebuffer> _frameBuffers;
 
-    VmaAllocator _allocator;
-
     VkImageView _depthImageView;
     AllocatedImage _depthImage;
     VkFormat _depthFormat;
@@ -75,7 +81,8 @@ private:
     std::unordered_map<std::string, Material> _materials;
     std::unordered_map<std::string, Mesh> _meshes;
 
-    DeletionQueue _mainDeletionQueue;
+    std::unordered_map<std::string, Texture> _loadedTextures;
+
     int _frameNumber = 0;
 
     glm::vec3 _cameraPos = glm::vec3(0.f, -6.f, -10.f);
@@ -128,7 +135,7 @@ private:
 
     void initDescriptors();
 
-    void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
+    void loadImages();
 
     Material *createMaterial(VkPipeline pipeline, VkPipelineLayout layout, const std::string &name);
 
@@ -137,8 +144,6 @@ private:
     Mesh *getMesh(const std::string &name);
 
     FrameData& getCurrentFrame();
-
-    AllocatedBuffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 
     size_t padUniformBufferSize(size_t originalSize);
 };
