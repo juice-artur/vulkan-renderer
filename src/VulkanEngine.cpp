@@ -572,12 +572,12 @@ void VulkanEngine::loadMeshes() {
     _meshes["bunny"] = bunnyMesh;
     _meshes["triangle"] = triangleMesh;
 
-    Mesh sponza{};
-    sponza.loadFromObj("../assets/sponza/sponza.obj");
+    Mesh lostEmpire{};
+    lostEmpire.loadFromObj("../assets/lost-empire/lost_empire.obj");
 
-    uploadMesh(sponza);
+    uploadMesh(lostEmpire);
 
-    _meshes["sponza"] = sponza;
+    _meshes["lostEmpire"] = lostEmpire;
 }
 
 void VulkanEngine::uploadMesh(Mesh &mesh) {
@@ -670,7 +670,7 @@ void VulkanEngine::initScene() {
     _renderables.push_back(monkey);
 
     RenderObject map;
-    map.mesh = getMesh("sponza");
+    map.mesh = getMesh("lostEmpire");
     map.material = getMaterial("texturedmesh");
     map.transformMatrix = glm::translate(glm::vec3{ 5,-10,0 });
 
@@ -710,7 +710,7 @@ void VulkanEngine::initScene() {
 
     VkDescriptorImageInfo imageBufferInfo;
     imageBufferInfo.sampler = blockySampler;
-    imageBufferInfo.imageView = _loadedTextures["sponza_diffuse"].imageView;
+    imageBufferInfo.imageView = _loadedTextures["empire_diffuse"].imageView;
     imageBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     VkWriteDescriptorSet texture1 = vkinit::writeDescriptorImage(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, texturedMat->textureSet, &imageBufferInfo, 0);
@@ -1018,12 +1018,16 @@ void VulkanEngine::immediateSubmit(std::function<void(VkCommandBuffer)> &&functi
 }
 
 void VulkanEngine::loadImages() {
-    Texture sponza;
+    Texture lostEmpire;
 
-    vkutil::loadImageFromFile(*this, "../assets/sponza/vrata_kr.JPG", sponza.image);
+    vkutil::loadImageFromFile(*this, "../assets/lost-empire/lost_empire-RGBA.png", lostEmpire.image);
 
-    VkImageViewCreateInfo imageinfo = vkinit::imageviewCreateInfo(VK_FORMAT_R8G8B8A8_SRGB, sponza.image._image, VK_IMAGE_ASPECT_COLOR_BIT);
-    vkCreateImageView(_device, &imageinfo, nullptr, &sponza.imageView);
+    VkImageViewCreateInfo imageinfo = vkinit::imageviewCreateInfo(VK_FORMAT_R8G8B8A8_SRGB, lostEmpire.image._image, VK_IMAGE_ASPECT_COLOR_BIT);
+    vkCreateImageView(_device, &imageinfo, nullptr, &lostEmpire.imageView);
 
-    _loadedTextures["sponza_diffuse"] = sponza;
+    _mainDeletionQueue.push_function([=]() {
+        vkDestroyImageView(_device, lostEmpire.imageView, nullptr);
+    });
+
+    _loadedTextures["empire_diffuse"] = lostEmpire;
 }
