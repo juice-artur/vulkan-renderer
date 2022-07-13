@@ -29,7 +29,7 @@ struct GPUSceneData {
     glm::vec4 fogColor;
     glm::vec4 fogDistances;
     glm::vec4 ambientColor;
-    glm::vec4 sunlightDirection;
+    glm::vec4 sunlightPos;
     glm::vec4 sunlightColor;
 };
 

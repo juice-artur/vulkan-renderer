@@ -428,6 +428,27 @@ bool VulkanEngine::loadShaderModule(const char *filePath, VkShaderModule *outSha
 }
 
 void VulkanEngine::initPipelines() {
+    VkPipelineLayoutCreateInfo sunPipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo();
+
+    VkPushConstantRange pushConstantRange;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(glm::vec3);
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    sunPipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    sunPipelineLayoutInfo.pushConstantRangeCount = 1;
+
+
+    VkPipelineLayout sunPipelineLayout;
+
+    VkDescriptorSetLayout setLayouts[] = {_globalSetLayout, _objectSetLayout};
+
+    sunPipelineLayoutInfo.setLayoutCount = 2;
+    sunPipelineLayoutInfo.pSetLayouts = setLayouts;
+
+
+    VK_CHECK(vkCreatePipelineLayout(_device, &sunPipelineLayoutInfo, nullptr, &sunPipelineLayout));
+
 
     VkPipelineLayoutCreateInfo meshPipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo();
 
@@ -436,7 +457,7 @@ void VulkanEngine::initPipelines() {
     pushConstant.size = sizeof(MeshPushConstants);
     pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-    VkDescriptorSetLayout setLayouts[] = {_globalSetLayout, _objectSetLayout};
+   /* VkDescriptorSetLayout setLayouts[] = {_globalSetLayout, _objectSetLayout};*/
 
     meshPipelineLayoutInfo.pPushConstantRanges = &pushConstant;
     meshPipelineLayoutInfo.pushConstantRangeCount = 1;
@@ -511,6 +532,11 @@ void VulkanEngine::initPipelines() {
     {
         std::cout << "Error when building the textured mesh shader" << std::endl;
     }
+    VkShaderModule sunFragShader;
+    if (!loadShaderModule("../shaders/sun.frag.spv", &sunFragShader))
+    {
+        std::cout << "Error when building the textured mesh shader" << std::endl;
+    }
 
     //add the other shaders
     pipelineBuilder.shaderStages.push_back(
@@ -536,10 +562,23 @@ void VulkanEngine::initPipelines() {
     VkPipeline texPipeline = pipelineBuilder.buildPipeline(_device, _renderPass);
     createMaterial(texPipeline, texturedPipeLayout, "texturedmesh");
 
+    pipelineBuilder.shaderStages.clear();
+    pipelineBuilder.shaderStages.push_back(
+            vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, meshVertShader));
+
+    pipelineBuilder.shaderStages.push_back(
+            vkinit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, sunFragShader));
+
+
+    pipelineBuilder.pipelineLayout = sunPipelineLayout;
+    VkPipeline sunPipeline = pipelineBuilder.buildPipeline(_device, _renderPass);
+    createMaterial(sunPipeline, sunPipelineLayout, "sun");
+
     //deleting all of the vulkan shaders
     vkDestroyShaderModule(_device, meshVertShader, nullptr);
     vkDestroyShaderModule(_device, triangleFragShader, nullptr);
     vkDestroyShaderModule(_device, texturedMeshShader, nullptr);
+    vkDestroyShaderModule(_device, sunFragShader, nullptr);
 
     //adding the pipelines to the deletion queue
     _mainDeletionQueue.push_function([=]() {
@@ -547,6 +586,7 @@ void VulkanEngine::initPipelines() {
         vkDestroyPipelineLayout(_device, meshPipelineLayout, nullptr);
         vkDestroyPipeline(_device, texPipeline, nullptr);
         vkDestroyPipelineLayout(_device, texturedPipeLayout, nullptr);
+        vkDestroyPipeline(_device, sunPipeline, nullptr);
     });
 }
 
@@ -563,20 +603,21 @@ void VulkanEngine::loadMeshes() {
     triangleMesh._vertices[1].color = {0.0f, 1.0f, 0.0f};
     triangleMesh._vertices[2].color = {0.0f, 0.0f, 1.0f};
     uploadMesh(triangleMesh);
+    _meshes["triangle"] = triangleMesh;
 
     Mesh bunnyMesh{};
     bunnyMesh.loadFromObj("../assets/bunny.obj");
-
     uploadMesh(bunnyMesh);
-
     _meshes["bunny"] = bunnyMesh;
-    _meshes["triangle"] = triangleMesh;
+
+    Mesh cube{};
+    cube.loadFromObj("../assets/cube/cube.obj");
+    uploadMesh(cube);
+    _meshes["cube"] = cube;
 
     Mesh lostEmpire{};
     lostEmpire.loadFromObj("../assets/lost-empire/lost_empire.obj");
-
     uploadMesh(lostEmpire);
-
     _meshes["lostEmpire"] = lostEmpire;
 }
 
@@ -662,22 +703,36 @@ Mesh *VulkanEngine::getMesh(const std::string &name) {
 }
 
 void VulkanEngine::initScene() {
-    RenderObject monkey;
+/*    RenderObject monkey;
     monkey.mesh = getMesh("bunny");
     monkey.material = getMaterial("defaultmesh");
     monkey.transformMatrix = glm::mat4{1.0f};
 
-    _renderables.push_back(monkey);
+    _renderables.push_back(monkey);*/
 
     RenderObject map;
     map.mesh = getMesh("lostEmpire");
     map.material = getMaterial("texturedmesh");
-    map.transformMatrix = glm::translate(glm::vec3{ 5,-10,0 });
+    map.transformMatrix = glm::translate(glm::vec3{ 5,-50,0 });
 
     _renderables.push_back(map);
 
-    for (int x = -20; x <= 20; x++) {
-        for (int y = -20; y <= 20; y++) {
+    RenderObject sun;
+    sun.mesh = getMesh("cube");
+    sun.material = getMaterial("sun");
+    sun.transformMatrix = glm::translate(glm::vec3{ 5,0,0 });
+    _renderables.push_back(sun);
+
+
+    RenderObject cube;
+    cube.mesh = getMesh("cube");
+    cube.material = getMaterial("texturedmesh");
+    cube.transformMatrix = glm::translate(glm::vec3{ 5,-3,0 });
+    _renderables.push_back(cube);
+
+
+    for (int x = 5; x <= 20; x++) {
+        for (int y = 0; y <= 20; y++) {
 
             RenderObject tri;
             tri.mesh = getMesh("triangle");
@@ -693,8 +748,6 @@ void VulkanEngine::initScene() {
 
     VkSampler blockySampler;
     vkCreateSampler(_device, &samplerInfo, nullptr, &blockySampler);
-
-
 
     Material* texturedMat=	getMaterial("texturedmesh");
 
@@ -714,7 +767,6 @@ void VulkanEngine::initScene() {
     imageBufferInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     VkWriteDescriptorSet texture1 = vkinit::writeDescriptorImage(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, texturedMat->textureSet, &imageBufferInfo, 0);
-
     vkUpdateDescriptorSets(_device, 1, &texture1, 0, nullptr);
 }
 
@@ -741,7 +793,8 @@ void VulkanEngine::drawObjects(VkCommandBuffer cmd, RenderObject *first, int cou
     float framed = (_frameNumber / 120.f);
 
     _sceneParameters.ambientColor = {sin(framed), 0, cos(framed), 1};
-
+    _sceneParameters.sunlightColor = {1.0f, 1.0f,1.0f,1.0f};
+    _sceneParameters.sunlightPos = glm::vec4{ 5,0,0,0 };
     char *sceneData;
     vmaMapMemory(_allocator, _sceneParameterBuffer._allocation, (void **) &sceneData);
 
@@ -767,7 +820,7 @@ void VulkanEngine::drawObjects(VkCommandBuffer cmd, RenderObject *first, int cou
     Material *lastMaterial = nullptr;
     for (int i = 0; i < count; i++) {
         RenderObject &object = first[i];
-        if (object.material != lastMaterial) {
+        if (object.material != lastMaterial/* && object.material != getMaterial("sun")*/) {
             vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, object.material->pipeline);
             lastMaterial = object.material;
             uint32_t uniformOffset = padUniformBufferSize(sizeof(GPUSceneData)) * frameIndex;
@@ -777,10 +830,19 @@ void VulkanEngine::drawObjects(VkCommandBuffer cmd, RenderObject *first, int cou
             vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, object.material->pipelineLayout, 1, 1, &getCurrentFrame().objectDescriptor, 0, nullptr);
         }
 
-        MeshPushConstants constants;
-        constants.renderMatrix = object.transformMatrix;
-        vkCmdPushConstants(cmd, object.material->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                           sizeof(MeshPushConstants), &constants);
+        if (object.material != getMaterial("sun")){
+            MeshPushConstants constants;
+            constants.renderMatrix = object.transformMatrix;
+            vkCmdPushConstants(cmd, object.material->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                               sizeof(MeshPushConstants), &constants);
+        }
+
+        if (object.material == getMaterial("sun")){
+            glm::vec3 constants;
+            constants = _cameraPos;
+            vkCmdPushConstants(cmd, object.material->pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                               sizeof(glm::vec3), &constants);
+        }
 
         if (object.mesh != lastMesh) {
             VkDeviceSize offset = 0;
