@@ -41,7 +41,7 @@ public:
     deletion_queue _mainDeletionQueue;
 
 private:
-    VkExtent2D _windowExtent{800, 600};
+    VkExtent2D _windowExtent{1200, 800};
 
     UploadContext _uploadContext;
 
