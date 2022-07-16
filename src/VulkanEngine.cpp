@@ -452,14 +452,8 @@ void VulkanEngine::initPipelines() {
 
     VkPipelineLayoutCreateInfo meshPipelineLayoutInfo = vkinit::pipelineLayoutCreateInfo();
 
-    VkPushConstantRange pushConstant;
-    pushConstant.offset = 0;
-    pushConstant.size = sizeof(MeshPushConstants);
-    pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-   /* VkDescriptorSetLayout setLayouts[] = {_globalSetLayout, _objectSetLayout};*/
-
-    meshPipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+    meshPipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
     meshPipelineLayoutInfo.pushConstantRangeCount = 1;
 
     meshPipelineLayoutInfo.setLayoutCount = 2;
@@ -727,7 +721,7 @@ void VulkanEngine::initScene() {
     RenderObject cube;
     cube.mesh = getMesh("cube");
     cube.material = getMaterial("texturedmesh");
-    cube.transformMatrix = glm::translate(glm::vec3{ 5,-3,0 });
+    cube.transformMatrix = glm::translate(glm::vec3{ 8,-3,0 });
     _renderables.push_back(cube);
 
 
@@ -749,7 +743,7 @@ void VulkanEngine::initScene() {
     VkSampler blockySampler;
     vkCreateSampler(_device, &samplerInfo, nullptr, &blockySampler);
 
-    Material* texturedMat=	getMaterial("texturedmesh");
+    Material* texturedMat =	getMaterial("texturedmesh");
 
     //allocate the descriptor set for single-texture to use on the material
     VkDescriptorSetAllocateInfo allocInfo = {};
@@ -820,7 +814,7 @@ void VulkanEngine::drawObjects(VkCommandBuffer cmd, RenderObject *first, int cou
     Material *lastMaterial = nullptr;
     for (int i = 0; i < count; i++) {
         RenderObject &object = first[i];
-        if (object.material != lastMaterial/* && object.material != getMaterial("sun")*/) {
+        if (object.material != lastMaterial) {
             vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, object.material->pipeline);
             lastMaterial = object.material;
             uint32_t uniformOffset = padUniformBufferSize(sizeof(GPUSceneData)) * frameIndex;
@@ -831,13 +825,6 @@ void VulkanEngine::drawObjects(VkCommandBuffer cmd, RenderObject *first, int cou
         }
 
         if (object.material != getMaterial("sun")){
-            MeshPushConstants constants;
-            constants.renderMatrix = object.transformMatrix;
-            vkCmdPushConstants(cmd, object.material->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                               sizeof(MeshPushConstants), &constants);
-        }
-
-        if (object.material == getMaterial("sun")){
             glm::vec3 constants;
             constants = _cameraPos;
             vkCmdPushConstants(cmd, object.material->pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,

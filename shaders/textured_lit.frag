@@ -4,7 +4,6 @@ layout (location = 0) in vec3 inColor;
 layout (location = 1) in vec2 texCoord;
 layout (location = 2) in vec3 FragPos;
 layout (location = 3) in vec3 Normal;
-layout (location = 4) in vec3 viewPos;
 
 layout (location = 0) out vec4 outFragColor;
 
@@ -36,9 +35,9 @@ void main()
     vec3 ambient = ambientStrength * sceneData.sunlightColor.xyz;
 
     float specularStrength = 0.5;
-    vec3 viewDir = normalize(viewPos - FragPos);
+    vec3 viewDir = normalize(PushConstants.camPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 256);
 
     vec3 d = {0, 255, 0};
     vec3 specular = specularStrength * spec * sceneData.sunlightColor.xyz;
