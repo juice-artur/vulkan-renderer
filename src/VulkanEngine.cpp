@@ -789,6 +789,10 @@ void VulkanEngine::drawObjects(VkCommandBuffer cmd, RenderObject *first, int cou
     _sceneParameters.ambientColor = {sin(framed), 0, cos(framed), 1};
     _sceneParameters.sunlightColor = {1.0f, 1.0f,1.0f,1.0f};
     _sceneParameters.sunlightPos = glm::vec4{ 5,0,0,0 };
+    _sceneParameters.constant = 1.0f;
+    _sceneParameters.linear = 0.007f;
+    _sceneParameters.quadratic = 0.0002f;
+
     char *sceneData;
     vmaMapMemory(_allocator, _sceneParameterBuffer._allocation, (void **) &sceneData);
 
@@ -850,7 +854,7 @@ void VulkanEngine::processInput(GLFWwindow *window) {
     if (glfwGetKey(_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(_window, true);
 
-    float cameraSpeed = 2.5 * _deltaTime;
+    float cameraSpeed = 4.5 * _deltaTime;
     if (glfwGetKey(_window, GLFW_KEY_W) == GLFW_PRESS)
         _cameraPos += cameraSpeed * _cameraFront;
     if (glfwGetKey(_window, GLFW_KEY_S) == GLFW_PRESS)

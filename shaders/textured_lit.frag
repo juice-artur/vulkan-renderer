@@ -13,6 +13,10 @@ layout(set = 0, binding = 1) uniform  SceneData{
     vec4 ambientColor;
     vec4 sunlightPos;
     vec4 sunlightColor;
+
+    float constant;
+    float linear;
+    float quadratic;
 } sceneData;
 
 layout( push_constant ) uniform constants
@@ -28,19 +32,23 @@ void main()
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(sceneData.sunlightPos.xyz - FragPos);
 
+
+    float distance = length(sceneData.sunlightPos.xyz- FragPos);
+    float attenuation = 1.0 / (sceneData.constant + sceneData.linear * distance + sceneData.quadratic * (distance * distance));
+
     float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * sceneData.sunlightColor.xyz;
+    vec3 diffuse = diff * sceneData.sunlightColor.xyz * attenuation;
 
     float ambientStrength = 0.1;
-    vec3 ambient = ambientStrength * sceneData.sunlightColor.xyz;
+    vec3 ambient = ambientStrength * sceneData.sunlightColor.xyz * attenuation;
 
     float specularStrength = 0.5;
     vec3 viewDir = normalize(PushConstants.camPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 256);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
 
     vec3 d = {0, 255, 0};
-    vec3 specular = specularStrength * spec * sceneData.sunlightColor.xyz;
+    vec3 specular = specularStrength * spec * sceneData.sunlightColor.xyz * attenuation;
 
     vec3 color = texture(tex1,texCoord).xyz;
 
