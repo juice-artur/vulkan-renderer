@@ -697,12 +697,6 @@ Mesh *VulkanEngine::getMesh(const std::string &name) {
 }
 
 void VulkanEngine::initScene() {
-/*    RenderObject monkey;
-    monkey.mesh = getMesh("bunny");
-    monkey.material = getMaterial("defaultmesh");
-    monkey.transformMatrix = glm::mat4{1.0f};
-
-    _renderables.push_back(monkey);*/
 
     RenderObject map;
     map.mesh = getMesh("lostEmpire");
