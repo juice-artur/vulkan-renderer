@@ -6,6 +6,9 @@ layout (location = 3) in vec2 vTexCoord;
 
 layout (location = 0) out vec3 outColor;
 layout (location = 1) out vec2 texCoord;
+layout (location = 2) out vec3 FragPos;
+layout (location = 3) out vec3 Normal;
+
 
 layout (set = 0, binding = 0) uniform  CameraBuffer{
     mat4 view;
@@ -22,15 +25,12 @@ layout (std140, set = 1, binding = 0) readonly buffer ObjectBuffer {
 } objectBuffer;
 
 
-layout (push_constant) uniform constants {
-    vec4 data;
-    mat4 renderMatrix;
-} PushConstants;
-
 void main() {
     mat4 modelMatrix = objectBuffer.objects[gl_BaseInstance].model;
     mat4 transformMatrix = (cameraData.viewproj * modelMatrix);
     gl_Position = transformMatrix * vec4(vPosition, 1.0f);
+    FragPos = vec3(modelMatrix * vec4(vPosition, 1.0));
     outColor = vColor;
     texCoord = vTexCoord;
+    Normal = mat3(transpose(inverse(modelMatrix))) * vNormal;
 }
