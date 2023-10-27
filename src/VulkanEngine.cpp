@@ -47,6 +47,7 @@ void VulkanEngine::initVulkan() {
     vkb::InstanceBuilder instance_builder;
     auto instance_builder_return = instance_builder
             .set_app_name("vulkan-step-by-step")
+            .require_api_version(1, 1, 0)
             .request_validation_layers(true)
             .use_default_debug_messenger()
             .build();
